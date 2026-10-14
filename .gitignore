@@ -1,0 +1,26 @@
+# Environnement virtuel et secrets
+.venv/
+.env
+
+# PDF sources (volumineux, téléchargés manuellement)
+data/raw/
+
+# Caches Python / Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Données dérivées du pipeline (reconstructibles : python -m src.extract, python -m src.chunking)
+data/processed/*
+!data/processed/.gitkeep
+
+# Divers
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Notes de travail personnelles (non publiées)
+CLAUDE.md
+results/generations_test.csv
+data/testset/brouillon_quick.jsonl

@@ -1,0 +1,3 @@
+systeme,n_répondables,n_sans_réponse,correct (juge),F1,abstention correcte,refus injustifié,tokens/requête,latence (s),coût / 1000 req ($),fidélité (juge)
+S0 sans retrieval,48,13,0.24 [0.16 ; 0.32],0.33 [0.28 ; 0.39],0.15 [0.00 ; 0.38],0.08,267,0.59,0.045,
+S1 BM25,48,13,0.78 [0.68 ; 0.88],0.58 [0.50 ; 0.66],0.77 [0.54 ; 1.00],0.10,2102,0.65,0.175,0.98 [0.95 ; 1.00]

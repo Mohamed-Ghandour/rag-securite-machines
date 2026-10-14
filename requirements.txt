@@ -1,0 +1,19 @@
+# PyTorch (CUDA) n'est PAS listé ici : à installer séparément, voir README.
+#   Local (driver CUDA 12.7) : pip install torch --index-url https://download.pytorch.org/whl/cu126
+#   Colab : torch est déjà préinstallé.
+
+sentence-transformers
+faiss-cpu
+rank-bm25
+pymupdf
+pdfplumber
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+tqdm
+groq
+python-dotenv
+ipykernel
+jupyter
