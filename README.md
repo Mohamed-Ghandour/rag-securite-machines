@@ -63,6 +63,16 @@ Retrieval raises correct answers by +0.54 to +0.61 (significant, also on a 61-qu
 - Test questions were generated from 512-token structural chunks and reuse source vocabulary, which likely advantages BM25.
 - Generation ablations (top-k, prompt variants, HyDE, small vs large LLM) were not run; a single generator, judge, encoder and reranker were used. Dollar costs are indicative.
 - Corpus is dominated by INRS documents; figures and pictograms are not extracted.
+## Repository layout
+
+| Path | Content |
+|---|---|
+| `notebooks/rag_securite_machines.ipynb` | Full write-up (French) with the integrated source code and executed results |
+| `src/` | Pipeline modules (extraction, chunking, BM25, dense, hybrid, evaluation, generation, analysis) |
+| `data/sources.csv` | Source URL of each of the 40 documents |
+| `data/testset/` | Candidate questions, review file, hand-validated questions |
+| `results/`, `figures/` | Metrics, bootstrap tables, error taxonomy, plots |
+
 ## Reproduce
 
 ```bash
