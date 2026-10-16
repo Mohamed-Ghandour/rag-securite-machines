@@ -80,7 +80,3 @@ python -m src.run_generation --n 60 && python -m src.analyze report
 ```
 
 The notebook [`notebooks/rag_securite_machines.ipynb`](notebooks/rag_securite_machines.ipynb) (in French) reads the cached results and contains the full write-up.
-
-## AI assistance
-
-Developed with Claude Code (Anthropic). Code in `src/`, draft questions, and a first draft of the notebook were produced with its help; design choices, results and analysis are the author's responsibility to understand and defend.
