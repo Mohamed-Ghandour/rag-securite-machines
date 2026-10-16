@@ -40,8 +40,9 @@ def fmt(m, lo, hi):
     return f"{m:.2f} [{lo:.2f} ; {hi:.2f}]"
 
 
-def report(gen_path: Path) -> None:
+def report(gen_path: Path, tag: str = "") -> None:
     global SYSTEMS
+    sfx = f"_{tag}" if tag else ""
     g = pd.read_csv(gen_path)
     g["correct_juge"] = pd.to_numeric(g["correct_juge"], errors="coerce")
     counts = g.groupby("systeme").size()
@@ -69,12 +70,16 @@ def report(gen_path: Path) -> None:
         row["abstention correcte"] = fmt(*bootstrap_ci(n.abstention.astype(float))) if len(n) else "-"
         row["refus injustifié"] = f"{a.abstention.mean():.2f}"
         t = g[g.systeme == s]
+        if s != "S0":                                  # citations : présence et validité formelle (numéros existants)
+            rep = t[~t.abstention.astype(bool)]
+            row["réponses citées"] = f"{rep.citation_ok.notna().mean():.2f}"
+            row["citations valides"] = f"{rep.citation_ok.dropna().astype(bool).mean():.2f}"
         row["tokens/requête"] = int((t.prompt_tokens + t.completion_tokens).mean())
         row["latence (s)"] = round(t.latency_s.mean(), 2)
         row["coût / 1000 req ($)"] = round((t.prompt_tokens.mean() * PRICE["in"] + t.completion_tokens.mean() * PRICE["out"]) / 1000, 3)
         rows.append(row)
     table = pd.DataFrame(rows)
-    table.to_csv(RES / "metriques_par_systeme.csv", index=False)
+    table.to_csv(RES / f"metriques_par_systeme{sfx}.csv", index=False)
     print(table.to_string(index=False))
 
     print("\nDifférences appariées (IC95 % bootstrap, correct juge, questions répondables) :")
@@ -86,11 +91,11 @@ def report(gen_path: Path) -> None:
             sig = "significatif" if lo > 0 or hi < 0 else "non significatif"
             print(f"  {LABEL[a_]} - {LABEL[b_]} : {fmt(m, lo, hi)}  -> {sig}")
             diffs.append({"a": a_, "b": b_, "diff": m, "ic_bas": lo, "ic_haut": hi, "verdict": sig})
-    pd.DataFrame(diffs).to_csv(RES / "differences_bootstrap.csv", index=False)
+    pd.DataFrame(diffs).to_csv(RES / f"differences_bootstrap{sfx}.csv", index=False)
 
     # par type de question
     by_type = ans.groupby(["systeme", "type"]).correct_juge.mean().unstack().reindex(SYSTEMS).round(2)
-    by_type.to_csv(RES / "correct_par_type.csv")
+    by_type.to_csv(RES / f"correct_par_type{sfx}.csv")
     print("\nCorrect (juge) par type de question :\n", by_type.to_string())
 
     # taxonomie d'erreurs (systèmes avec retrieval)
@@ -104,6 +109,8 @@ def report(gen_path: Path) -> None:
                 cat = "ok"
             elif q.abstention:
                 cat = "refus injustifié" if r5.get(q.id, 0) > 0 else "passage non retrouvé (abstention)"
+            elif 0 < r5.get(q.id, 0) < 1:
+                cat = "information répartie : un seul des passages retrouvé"
             elif r5.get(q.id, 0) == 0:
                 cat = "passage non retrouvé"
             elif q.fidele_juge == 0:
@@ -112,7 +119,7 @@ def report(gen_path: Path) -> None:
                 cat = "bon contexte, réponse incomplète/fausse"
             errs.append({"systeme": s, "categorie": cat})
     e = pd.DataFrame(errs).value_counts(["systeme", "categorie"]).unstack(0).fillna(0).astype(int)
-    e.to_csv(RES / "taxonomie_erreurs.csv")
+    e.to_csv(RES / f"taxonomie_erreurs{sfx}.csv")
     print("\nTaxonomie d'erreurs (nombre de réponses) :\n", e.to_string())
 
     # figures
@@ -128,7 +135,7 @@ def report(gen_path: Path) -> None:
     ax[1].set_xticks(X); ax[1].set_xticklabels([LABEL[s].replace(" ", "\n", 1) for s in SYSTEMS], fontsize=8)
     ax[1].set_ylim(0, 1); ax[1].set_title("Abstention correcte\nquestions sans réponse")
     fig.suptitle("Résultats provisoires (jeu de test non relu à la main)" if "provisoire" in gen_path.name else "", fontsize=9)
-    fig.tight_layout(); fig.savefig(FIG / "resultats_generation.png", dpi=150)
+    fig.tight_layout(); fig.savefig(FIG / f"resultats_generation{sfx}.png", dpi=150)
 
     r = pd.read_csv(RES / "retrieval_structural_512.csv")
     fig, ax = plt.subplots(figsize=(6, 3.5))
@@ -139,6 +146,51 @@ def report(gen_path: Path) -> None:
     ax.set_ylim(0, 1); ax.legend(fontsize=7); ax.set_title("Retrieval (structurel 512)")
     fig.tight_layout(); fig.savefig(FIG / "retrieval.png", dpi=150)
     print("\nfigures :", [p.name for p in FIG.glob("*.png")])
+
+
+CONFIGS = [f"{s}_{n}" for s in ("structural", "fixed") for n in (256, 512, 1024)]
+RET_SYS = ["S1_bm25", "S2_dense", "RRF", "S3_hybride_rerank"]
+
+
+def retrieval() -> None:
+    """Ablation du découpage (6 configurations x 4 systèmes) avec IC bootstrap, et différences appariées."""
+    per = {}
+    for c in CONFIGS:
+        p = RES / f"retrieval_par_question_{c}.csv"
+        if p.exists():
+            per[c] = pd.read_csv(p)
+    rows = []
+    for c, d in per.items():
+        for s in RET_SYS:
+            x = d[d.systeme == s]
+            m5, lo5, hi5 = bootstrap_ci(x["recall@5"])
+            rows.append({"découpage": c, "système": s, "Recall@1": round(x["recall@1"].mean(), 3),
+                         "Recall@5": fmt(m5, lo5, hi5), "MRR": round(x["mrr"].mean(), 3), "n": len(x)})
+    tab = pd.DataFrame(rows)
+    tab.to_csv(RES / "ablation_decoupage.csv", index=False)
+    print(tab.to_string(index=False))
+
+    diffs = []
+    ref = per["structural_512"]
+    for metric in ("recall@1", "recall@5", "mrr"):
+        for a_, b_ in [("S3_hybride_rerank", "S1_bm25"), ("S3_hybride_rerank", "S2_dense"), ("S1_bm25", "S2_dense"), ("RRF", "S1_bm25")]:
+            x = ref[ref.systeme == a_].set_index("id")[metric]
+            y = ref[ref.systeme == b_].set_index("id")[metric].reindex(x.index)
+            m, lo, hi = paired_diff(x, y)
+            diffs.append({"comparaison": f"{a_} - {b_}", "métrique": metric, "diff": round(m, 3), "ic_bas": round(lo, 3),
+                          "ic_haut": round(hi, 3), "verdict": "significatif" if lo > 0 or hi < 0 else "non significatif"})
+    for s in RET_SYS:                                    # structurel contre fixe, à taille égale
+        for size in (256, 512, 1024):
+            if f"fixed_{size}" in per and f"structural_{size}" in per:
+                x = per[f"structural_{size}"].query("systeme == @s").set_index("id")["recall@5"]
+                y = per[f"fixed_{size}"].query("systeme == @s").set_index("id")["recall@5"].reindex(x.index)
+                m, lo, hi = paired_diff(x, y)
+                diffs.append({"comparaison": f"{s} : structurel - fixe ({size})", "métrique": "recall@5", "diff": round(m, 3),
+                              "ic_bas": round(lo, 3), "ic_haut": round(hi, 3),
+                              "verdict": "significatif" if lo > 0 or hi < 0 else "non significatif"})
+    dd = pd.DataFrame(diffs)
+    dd.to_csv(RES / "differences_retrieval.csv", index=False)
+    print("\n", dd.to_string(index=False))
 
 
 def annotate(gen_path: Path, n: int = 30) -> None:
@@ -173,13 +225,14 @@ def kappa(annot: str = "annotations_a_remplir.csv", col: str = "ta_note") -> Non
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["report", "annotate", "kappa"])
+    ap.add_argument("cmd", choices=["report", "annotate", "kappa", "retrieval"])
     ap.add_argument("--gen", default=str(RES / "generations_provisoire.csv"))
+    ap.add_argument("--tag", default="", help="suffixe des fichiers de sortie du rapport")
     ap.add_argument("--annot", default="annotations_a_remplir.csv")
     ap.add_argument("--col", default="ta_note")
     a = ap.parse_args()
-    {"report": lambda: report(Path(a.gen)), "annotate": lambda: annotate(Path(a.gen)),
-     "kappa": lambda: kappa(a.annot, a.col)}[a.cmd]()
+    {"report": lambda: report(Path(a.gen), a.tag), "annotate": lambda: annotate(Path(a.gen)),
+     "kappa": lambda: kappa(a.annot, a.col), "retrieval": retrieval}[a.cmd]()
 
 
 if __name__ == "__main__":

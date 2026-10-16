@@ -1,0 +1,25 @@
+comparaison,métrique,diff,ic_bas,ic_haut,verdict
+S3_hybride_rerank - S1_bm25,recall@1,0.098,0.027,0.17,significatif
+S3_hybride_rerank - S2_dense,recall@1,0.288,0.212,0.367,significatif
+S1_bm25 - S2_dense,recall@1,0.189,0.091,0.284,significatif
+RRF - S1_bm25,recall@1,-0.027,-0.091,0.038,non significatif
+S3_hybride_rerank - S1_bm25,recall@5,0.034,0.0,0.072,non significatif
+S3_hybride_rerank - S2_dense,recall@5,0.106,0.057,0.159,significatif
+S1_bm25 - S2_dense,recall@5,0.072,0.015,0.133,significatif
+RRF - S1_bm25,recall@5,-0.038,-0.08,0.0,non significatif
+S3_hybride_rerank - S1_bm25,mrr,0.068,0.023,0.115,significatif
+S3_hybride_rerank - S2_dense,mrr,0.211,0.157,0.268,significatif
+S1_bm25 - S2_dense,mrr,0.143,0.077,0.21,significatif
+RRF - S1_bm25,mrr,-0.025,-0.068,0.016,non significatif
+S1_bm25 : structurel - fixe (256),recall@5,0.015,-0.03,0.064,non significatif
+S1_bm25 : structurel - fixe (512),recall@5,0.049,0.015,0.091,significatif
+S1_bm25 : structurel - fixe (1024),recall@5,0.004,-0.034,0.042,non significatif
+S2_dense : structurel - fixe (256),recall@5,-0.019,-0.087,0.049,non significatif
+S2_dense : structurel - fixe (512),recall@5,0.106,0.042,0.174,significatif
+S2_dense : structurel - fixe (1024),recall@5,0.076,0.015,0.14,significatif
+RRF : structurel - fixe (256),recall@5,0.0,-0.053,0.049,non significatif
+RRF : structurel - fixe (512),recall@5,0.042,-0.008,0.095,non significatif
+RRF : structurel - fixe (1024),recall@5,0.008,-0.049,0.064,non significatif
+S3_hybride_rerank : structurel - fixe (256),recall@5,-0.008,-0.049,0.03,non significatif
+S3_hybride_rerank : structurel - fixe (512),recall@5,0.034,0.011,0.064,significatif
+S3_hybride_rerank : structurel - fixe (1024),recall@5,0.019,-0.004,0.045,non significatif

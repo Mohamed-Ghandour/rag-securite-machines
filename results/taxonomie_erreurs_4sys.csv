@@ -1,0 +1,7 @@
+categorie,S1_bm25,S2_dense,S3_hybride_rerank
+ok,24,26,26
+hallucination (aurait dû s'abstenir),3,3,2
+passage non retrouvé,2,1,1
+refus injustifié,3,1,1
+"bon contexte, réponse incomplète/fausse",2,2,4
+information répartie : un seul des passages retrouvé,0,1,0

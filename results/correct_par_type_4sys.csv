@@ -1,0 +1,5 @@
+systeme,factuelle,multi,numerique
+S0,0.33,0.1,0.29
+S1_bm25,0.87,0.4,1.0
+S2_dense,0.93,0.6,1.0
+S3_hybride_rerank,0.87,0.8,1.0

@@ -24,16 +24,23 @@ def main() -> None:
     ap.add_argument("--systems", nargs="+", default=["S0", "S1_bm25", "S2_dense", "S3_hybride_rerank"])
     ap.add_argument("--k", type=int, default=5)
     ap.add_argument("--n", type=int, default=0, help="sous-échantillon stratifié par type (0 = tout)")
+    ap.add_argument("--subset", type=int, default=0, help="sous-échantillon stratifié du jeu déjà tiré avec --n")
     ap.add_argument("--prompt", choices=["cite", "simple"], default="cite")
     ap.add_argument("--out", default=str(ROOT / "results/generations.csv"))
     a = ap.parse_args()
 
     qs = [json.loads(l) for l in Path(a.questions).read_text(encoding="utf-8").splitlines()]
-    if a.n:
-        rng, by = random.Random(42), {}
-        for q in qs:
+
+    def stratified(items, n, seed):
+        rng, by = random.Random(seed), {}
+        for q in items:
             by.setdefault(q["type"], []).append(q)
-        qs = [q for v in by.values() for q in rng.sample(v, max(1, round(a.n * len(v) / len(qs))))]
+        return [q for v in by.values() for q in rng.sample(v, max(1, round(n * len(v) / len(items))))]
+
+    if a.n:
+        qs = stratified(qs, a.n, 42)
+    if a.subset:                                         # sous-échantillon du précédent (les réponses déjà en cache sont réutilisées)
+        qs = stratified(qs, a.subset, 7)
     ch = R.load_chunks(a.config)
     rank = json.loads((ROOT / f"data/processed/rankings_{a.config}.json").read_text(encoding="utf-8"))
     prompt = rag.PROMPT_RAG_CITE if a.prompt == "cite" else rag.PROMPT_RAG_SIMPLE

@@ -24,3 +24,6 @@ Thumbs.db
 CLAUDE.md
 results/generations_test.csv
 data/testset/brouillon_quick.jsonl
+
+# Dossier de dépôt (copie locale)
+livrable/

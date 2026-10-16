@@ -1,10 +1,10 @@
-# RAG for Industrial Machine Safety
+﻿# RAG for Industrial Machine Safety
 
 Question answering over a specialized French document collection (INRS brochures, EU Machinery Regulation 2023/1230, Machinery Directive 2006/42/EC), built as a controlled experiment rather than a demo: every component is hand-coded, compared against baselines, and evaluated.
 
 *RAG-based question answering over a specialized document collection.*
 
-> **Status: preliminary results.** The test set was generated with an LLM and its evidence is verified automatically, but the questions have not all been reviewed by hand. Generation was evaluated for S0 and S1 only (free API quota exhausted); S2 and S3 are evaluated on retrieval. See *Limitations*.
+> **Status: preliminary results.** 20 test questions were reviewed and validated by hand; the others have their evidence verified automatically but are not hand-reviewed. Generation is compared across all four systems on 34 questions (S0 and S1 also on 61). See *Limitations*.
 
 ## What it does
 
@@ -31,7 +31,7 @@ Everything expensive is cached (extracted text, embeddings, LLM calls), seeds ar
 
 ## Preliminary results
 
-Retrieval (structure-aware chunks, 512 tokens, 132 answerable questions):
+**Retrieval** (structure-aware chunks, 512 tokens, 132 answerable questions, 95% bootstrap CI on paired differences):
 
 | System | Recall@1 | Recall@5 | MRR |
 |---|---|---|---|
@@ -40,25 +40,29 @@ Retrieval (structure-aware chunks, 512 tokens, 132 answerable questions):
 | RRF only | 0.70 | 0.89 | 0.84 |
 | **S3 hybrid + reranker** | **0.82** | **0.96** | **0.93** |
 
-Generation (61 questions, 95% bootstrap CI):
+S3 vs BM25: Recall@1 +0.10 [0.03, 0.17] and MRR +0.07 [0.02, 0.12] (significant); Recall@5 +0.03 [0.00, 0.07] (not significant). BM25 beats dense retrieval (significant). RRF fusion alone does not beat BM25.
 
-| | S0 (no retrieval) | S1 (BM25 + LLM) |
-|---|---|---|
-| Correct answers (LLM judge) | 0.24 [0.16, 0.32] | **0.78 [0.68, 0.88]** |
-| Correct abstention on unanswerable questions | 0.15 | **0.77** |
-| Faithfulness to retrieved passages | n/a | 0.98 |
-| Tokens per request | ~270 | ~2,100 |
+**Chunking ablation** (6 configurations x 4 systems): structure-aware chunking is significantly better than fixed-size at 512 tokens (BM25, dense, S3) and for dense retrieval at 1,024 tokens, but not at 256 tokens; the effect of chunk size itself is modest.
 
-Main findings: retrieval cuts hallucinations sharply (paired difference +0.54, CI [0.41, 0.68]); the reranker is the component that improves retrieval most while fusion alone does not beat BM25; structure-aware chunking beats fixed chunking; BM25 beats dense retrieval on this corpus, partly because LLM-generated questions reuse the source vocabulary.
+**Generation** (34 questions: 27 answerable, 7 unanswerable; same questions for all systems):
+
+| | S0 (no retrieval) | S1 BM25 | S2 dense | S3 hybrid + reranker |
+|---|---|---|---|---|
+| Correct answers (LLM judge) | 0.28 [0.15, 0.41] | 0.81 | 0.89 | **0.89 [0.81, 0.96]** |
+| Correct abstentions (7 questions) | 0/7 | 4/7 | 4/7 | 5/7 |
+| Faithfulness to passages | n/a | 0.97 | 1.00 | 1.00 |
+| Tokens per request | ~260 | ~2,090 | ~2,190 | ~2,250 |
+
+Retrieval raises correct answers by +0.54 to +0.61 (significant, also on a 61-question sample: 0.24 to 0.78 for S1). Differences **between** the RAG systems are not significant (S3 vs S1: +0.07 [-0.02, 0.20]): the retrieval gain of S3 is not demonstrated in generation at this sample size. RAG does not eliminate hallucination: 2 to 3 of 7 unanswerable questions still receive an invented answer.
 
 ## Limitations
 
-- Test questions are not all hand-reviewed; some references are imprecise.
-- The LLM judge was checked against **annotations produced by Claude (an LLM), not a human** (30 answers, kappa 0.93): this measures LLM-LLM agreement only.
-- Generation was run for S0 and S1 only; ablations (top-k, prompt variants, HyDE, small vs large LLM) were not run.
-- Test questions were generated from 512-token structural chunks and favor lexical overlap, which likely advantages BM25.
+- Only **20 factual questions** were hand-reviewed; the rest have automatically verified evidence but are not reviewed, and some references are imprecise. Generation was not evaluated on reviewed questions.
+- The LLM judge was checked against **annotations produced by Claude (an LLM), not a human** (30 answers, kappa 0.93): this measures LLM-LLM agreement only. Citation accuracy is checked formally (valid passage numbers), not semantically.
+- Small generation samples (34 and 61 questions): wide confidence intervals, especially for abstention (7 questions).
+- Test questions were generated from 512-token structural chunks and reuse source vocabulary, which likely advantages BM25.
+- Generation ablations (top-k, prompt variants, HyDE, small vs large LLM) were not run; a single generator, judge, encoder and reranker were used. Dollar costs are indicative.
 - Corpus is dominated by INRS documents; figures and pictograms are not extracted.
-
 ## Reproduce
 
 ```bash
