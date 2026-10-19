@@ -148,6 +148,39 @@ def report(gen_path: Path, tag: str = "") -> None:
     print("\nfigures :", [p.name for p in FIG.glob("*.png")])
 
 
+def cost(gen_path: Path) -> None:
+    """Coût et latence rapportés à la qualité : tokens, dollars (indicatifs) et secondes par réponse correcte."""
+    g = pd.read_csv(gen_path)
+    g["correct_juge"] = pd.to_numeric(g["correct_juge"], errors="coerce").fillna(0)
+    lat = pd.read_csv(RES / "latence_bout_en_bout.csv", index_col=0)
+    rows = []
+    for s in [s for s in SYSTEMS if s in set(g.systeme)]:
+        t = g[g.systeme == s]
+        tok = (t.prompt_tokens + t.completion_tokens).mean()
+        usd = (t.prompt_tokens.mean() * PRICE["in"] + t.completion_tokens.mean() * PRICE["out"]) / 1e3    # $ pour 1 000 requêtes
+        acc = t.correct_juge.mean()                                                                      # score moyen, toutes questions
+        rows.append({"systeme": LABEL[s], "score de qualité (juge)": round(acc, 2),
+                     "tokens / requête": int(tok), "$ / 1 000 requêtes": round(usd, 3),
+                     "tokens / réponse correcte": int(tok / acc), "$ / 1 000 réponses correctes": round(usd / acc, 3),
+                     "latence bout en bout (s)": lat.loc[s, "latence de bout en bout (s)"],
+                     "tokens du juge / requête (évaluation, hors service)": int(t.judge_tokens.mean())})
+    tab = pd.DataFrame(rows)
+    tab.to_csv(RES / "cout_qualite.csv", index=False)
+    print(tab.to_string(index=False))
+
+    FIG.mkdir(exist_ok=True)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+    for k, (xcol, xlabel) in enumerate([("tokens / requête", "tokens par requête"), ("latence bout en bout (s)", "latence de bout en bout (s)")]):
+        ax[k].scatter(tab[xcol], tab["score de qualité (juge)"], s=70, color="#4c78a8")
+        for _, r in tab.iterrows():
+            ax[k].annotate(r["systeme"].split(" ")[0], (r[xcol], r["score de qualité (juge)"]), textcoords="offset points",
+                           xytext=(6, 5), fontsize=9)
+        ax[k].set_xlabel(xlabel); ax[k].set_ylim(0, 1.05); ax[k].set_xlim(left=0)
+        ax[k].set_ylabel("score de qualité (juge)"); ax[k].grid(alpha=0.3)
+    fig.suptitle("Qualité contre coût (34 questions, tous systèmes)", fontsize=10)
+    fig.tight_layout(); fig.savefig(FIG / "cout_qualite.png", dpi=150)
+
+
 CONFIGS = [f"{s}_{n}" for s in ("structural", "fixed") for n in (256, 512, 1024)]
 RET_SYS = ["S1_bm25", "S2_dense", "RRF", "S3_hybride_rerank"]
 
@@ -225,14 +258,14 @@ def kappa(annot: str = "annotations_a_remplir.csv", col: str = "ta_note") -> Non
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["report", "annotate", "kappa", "retrieval"])
+    ap.add_argument("cmd", choices=["report", "annotate", "kappa", "retrieval", "cost"])
     ap.add_argument("--gen", default=str(RES / "generations_provisoire.csv"))
     ap.add_argument("--tag", default="", help="suffixe des fichiers de sortie du rapport")
     ap.add_argument("--annot", default="annotations_a_remplir.csv")
     ap.add_argument("--col", default="ta_note")
     a = ap.parse_args()
     {"report": lambda: report(Path(a.gen), a.tag), "annotate": lambda: annotate(Path(a.gen)),
-     "kappa": lambda: kappa(a.annot, a.col), "retrieval": retrieval}[a.cmd]()
+     "kappa": lambda: kappa(a.annot, a.col), "retrieval": retrieval, "cost": lambda: cost(Path(a.gen))}[a.cmd]()
 
 
 if __name__ == "__main__":

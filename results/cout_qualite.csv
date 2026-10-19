@@ -1,0 +1,5 @@
+systeme,score de qualité (juge),tokens / requête,$ / 1 000 requêtes,tokens / réponse correcte,$ / 1 000 réponses correctes,latence bout en bout (s),"tokens du juge / requête (évaluation, hors service)"
+S0 sans retrieval,0.22,257,0.042,1167,0.19,0.62,324
+S1 BM25,0.76,2092,0.174,2736,0.228,0.62,2342
+S2 dense,0.82,2189,0.183,2658,0.223,0.7,2455
+S3 hybride+rerank,0.85,2247,0.189,2635,0.222,1.37,2494

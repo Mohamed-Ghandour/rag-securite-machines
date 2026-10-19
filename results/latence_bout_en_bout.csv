@@ -1,0 +1,5 @@
+systeme,"latence recherche (ms, médiane)","latence génération API (s, moyenne)",latence de bout en bout (s)
+S0,0.0,0.62,0.62
+S1_bm25,2.1,0.62,0.62
+S2_dense,59.1,0.64,0.7
+S3_hybride_rerank,812.4,0.56,1.37

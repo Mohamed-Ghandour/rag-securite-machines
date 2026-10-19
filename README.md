@@ -55,6 +55,8 @@ S3 vs BM25: Recall@1 +0.10 [0.03, 0.17] and MRR +0.07 [0.02, 0.12] (significant)
 
 Retrieval raises correct answers by +0.54 to +0.61 (significant, also on a 61-question sample: 0.24 to 0.78 for S1). Differences **between** the RAG systems are not significant (S3 vs S1: +0.07 [-0.02, 0.20]): the retrieval gain of S3 is not demonstrated in generation at this sample size. RAG does not eliminate hallucination: 2 to 3 of 7 unanswerable questions still receive an invented answer.
 
+**Cost and latency** (34 questions): RAG multiplies tokens per request by about 8 (about 2,100-2,250 versus 260) and costs roughly the same per correct answer for all three RAG systems (about 2,700 tokens). The reranker adds about 750 ms per query on a local RTX 3050, which more than doubles end-to-end latency for S3 (1.37 s versus 0.62 s for S1) without a demonstrated generation gain; S1 or S2 give the best quality/cost/latency trade-off on this test set. Dollar figures use unverified pricing and are only indicative.
+
 ## Limitations
 
 - Only **20 factual questions** were hand-reviewed; the rest have automatically verified evidence but are not reviewed, and some references are imprecise. Generation was not evaluated on reviewed questions.
